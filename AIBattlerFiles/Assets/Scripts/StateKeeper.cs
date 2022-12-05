@@ -1,49 +1,52 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEngine.SceneManagement;
+public enum Weights
+{
+    Jump, 
+    Slash,
+    MoveRight,
+    MoveLeft,
+    Stop
+}
 public class StateKeeper : MonoBehaviour
 {
-    public static PlayerState playerState;
-    public PlatformerMovement Player;
-    public Enemy enemy;
-    public EnemyState enemyState;
+    public static Dictionary<Weights, int> RWeights;
+    public static Dictionary<Weights, int> LWeights;
+
+
+
+
     // Start is called before the first frame update
     void Start()
     {
-        playerState = new PlayerState();
-        enemyState = new EnemyState();
+        RWeights = new Dictionary<Weights, int>
+        {
+            {Weights.Slash,  5},
+            {Weights.Jump,  5},
+            {Weights.MoveRight,  5},
+            {Weights.MoveLeft,  5},
+            {Weights.Stop,  5}
+        };
+        LWeights = new Dictionary<Weights, int>
+        {
+             {Weights.Slash,  5},
+            {Weights.Jump,  5},
+            {Weights.MoveRight,  5},
+            {Weights.MoveLeft,  5},
+            {Weights.Stop,  5}
+        };
+        DontDestroyOnLoad(this);
+        SceneManager.LoadScene("SampleScene");
+      
+       
     }
 
     // Update is called once per frame
     void Update()
     {
-        enemyState.DistanceFromPlayer = Vector2.Distance(enemy.transform.position, Player.transform.position);
-        if (!Player.isOnGround)
-        {
-            playerState.isInAir = true;
-        }
-        else
-        {
-            playerState.isInAir = false;
-        }
-        if (!enemy.isOnGround)
-        {
-            enemyState.isInAir = true;
-        }
-       
-        else
-        {
-            enemyState.isInAir = false;
-        }
-        if (Player.horizontal != 0)
-        {
-            playerState.isMovingControlled = true;
-        }
-        else if (!Player.RemoveControl)
-        {
-            playerState.isMovingControlled = false;
-        }
+
     }
     
 }
@@ -55,7 +58,7 @@ public class PlayerState
 }
 public class EnemyState
 {
-    public float DistanceFromPlayer;
+    public bool IsAttacking;
     public bool isInAir;
     public bool isMovingControlled;
 }

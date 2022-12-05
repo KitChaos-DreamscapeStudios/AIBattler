@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 //To Add this script, create a C# file, and name it PlatformerMovement(Exaclty that) and then paste this entire script in, from start to end.
 //Alternatively, if you wish to name your file something else, only paste in the content below line 7, and remove the last curlybrace.
 public class PlatformerMovement: MonoBehaviour
@@ -17,6 +18,9 @@ public class PlatformerMovement: MonoBehaviour
     public float HealthPoints;
     public bool RemoveControl;
     public float lookDirect;
+    public Enemy enemy;
+    public GameObject HealthBar;
+    float JumpElap;
     // Start is called before the first frame update
     //Additional Instructions
     //Make sure the object you attatch this to has a Rigidbody2D component attatched to it, and there is a square below it with the Layer "Ground"
@@ -33,6 +37,7 @@ public class PlatformerMovement: MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        JumpElap += Time.deltaTime;
         if(horizontal != 0)
         {
             lookDirect = horizontal;
@@ -46,12 +51,18 @@ public class PlatformerMovement: MonoBehaviour
             Destroy(slash, 0.05f);
         }
         horizontal = Input.GetAxisRaw("Horizontal");
-        if ((Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.W)) && isOnGround == true)
+        if ((Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.W)) && JumpElap > 0.5f)
         {
+            JumpElap = 0;
             body.velocity = new Vector2(body.velocity.x, 1 * jumpPower);
 
         }
         isOnGround = Physics2D.OverlapBox(transform.position, new Vector2(transform.localScale.x, transform.localScale.y), 0, ground);
+        if(HealthPoints <= 0)
+        {
+            SceneManager.LoadScene("SampleScene");
+        }
+        HealthBar.transform.localScale = new Vector2(10 * (HealthPoints / 20), 1f);
     }
     private void FixedUpdate()
     {   
@@ -61,7 +72,17 @@ public class PlatformerMovement: MonoBehaviour
     {
         if(col.gameObject.tag == "Damager")
         {
-
+            HealthPoints -= 1;
+            if(enemy.transform.position.x < transform.position.x)
+            {
+                Enemy.Learn(true, StateKeeper.LWeights);
+            }
+            else
+            {
+                Enemy.Learn(true, StateKeeper.RWeights);
+            }
+          
+            PlayerPrefs.Save();
         }
     }
 }
