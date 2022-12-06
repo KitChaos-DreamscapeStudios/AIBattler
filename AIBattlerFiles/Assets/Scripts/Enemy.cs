@@ -264,7 +264,7 @@ public class Enemy : MonoBehaviour
             {
                 Learn(false, StateKeeper.LWeights);
             }
-            PlayerPrefs.Save();
+           
         }
     }
     float RandChoice(List<float> Choices)

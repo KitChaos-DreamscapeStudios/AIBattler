@@ -82,7 +82,7 @@ public class PlatformerMovement: MonoBehaviour
                 Enemy.Learn(true, StateKeeper.RWeights);
             }
           
-            PlayerPrefs.Save();
+           
         }
     }
 }
