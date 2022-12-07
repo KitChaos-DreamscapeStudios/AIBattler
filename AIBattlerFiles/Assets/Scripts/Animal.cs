@@ -24,6 +24,7 @@ public class Animal : MonoBehaviour
     public float EnergyUsage;
     Rigidbody2D body;
     public List<FoodTypes> diet;
+    float i;
     public void Start()
     {
         body = gameObject.GetComponent<Rigidbody2D>();
@@ -38,34 +39,42 @@ public class Animal : MonoBehaviour
         EnergyUsage = (1 * StatModifiers.SightMod) + (1 * StatModifiers.SpeedMod);
         //target = transform.position = Random.insideUnitCircle * 3;
     }
-    IEnumerator SetState(State state, float time = 0)
-    {
-        //yield return new WaitForSeconds(time);
-        moveState = state;
-        yield return null;
-       
-    }
+    
     public void Update()
     {
+      
         if (moveState == State.lookingAround)
         {
-            body.velocity = new Vector3(0, 0);
-            for(int i =0; i< 360; i++)
-            {
+
+            i += 1;
                 transform.Rotate(new Vector3(0, 0, 1));
-                
-               
+                if (seenEnems)
+                {
+                    if (diet.Contains(seenEnems.collider.gameObject.GetComponent<Food>().foodType))
+                    {
+                        if(Random.Range(Hunger,500) > 450)
+                        {
+                            target = seenEnems.transform.position;
+                            moveState = State.MovingIdle;
+                        }
+                       
+                    }
+                   
+                }
+
                 if (i == 359)
                 {
+
+                //moveState = State.MovingIdle;
                     target = transform.position + QuickMath.RandomVector(-10, 10);
+
                     moveState = State.MovingIdle;
 
 
                 }
                 //if(seenEnems.collider.gameObject)break
-            }
-           
-            //SetState(State.MovingIdle);
+            
+            
             
 
         }
@@ -73,19 +82,21 @@ public class Animal : MonoBehaviour
         if(moveState == State.MovingIdle)
         {
             transform.up = target - transform.position;
-            if (Vector2.Distance(transform.position, target) < 1)
-            {
-
-                moveState = State.lookingAround;
-
-            }
             body.velocity = transform.up * DNA.Speed;
+            if (Vector2.Distance(transform.position, target) < 0.1f)
+            {
+                i = 0;
+                body.velocity = new Vector3(0, 0);
+                moveState = State.lookingAround;
+                
+            }
+            
             
         }
      
         Hunger += EnergyUsage * Time.deltaTime;
         //transform.Rotate(new Vector3(0, 0, 1f));
-        seenEnems = Physics2D.Raycast(transform.up + new Vector3(0,DNA.Sight), new Vector2(DNA.Sight/4, DNA.Sight), transform.rotation.z);
+        seenEnems = Physics2D.Raycast(transform.position + transform.up *transform.localScale.y,transform.up,DNA.Sight);
         if(Hunger > 500)
         {
             Die();
@@ -123,11 +134,11 @@ public class Animal : MonoBehaviour
     }
     private void OnTriggerEnter2D(Collider2D col)
     {
-        if (diet.Contains(col.gameObject.GetComponent<Food>().foodType))
-        {
+         if (diet.Contains(col.gameObject.GetComponent<Food>().foodType) && Hunger > 100)
+         {
             Destroy(col.gameObject);
             Hunger -= col.gameObject.GetComponent<Food>().Nutrition;
-            if (Hunger < 0)
+            if(Hunger < 0)
             {
                 Hunger = 0;
             }
