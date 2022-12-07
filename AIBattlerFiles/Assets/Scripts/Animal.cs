@@ -4,97 +4,160 @@ using UnityEngine;
 
 public class Animal : MonoBehaviour
 {
-    public enum Mode
+    public enum State 
     {
-        MoveTo,
-        Wander, 
-        Escape,
-        
+        Fleeing,
+        SearchingFood,
+        MovingIdle,
+        lookingAround,
+        Idle
     }
-    public List<Neuron> turnNeurons;
-    public List<Neuron> forwardNeurons;
-    public Mode mode;
-    public Vector3 MoveToTarget;
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        if (Input.GetMouseButtonUp(0))
-        {
-            MoveToTarget = new Vector3(Camera.main.ScreenToWorldPoint(Input.mousePosition).x, Camera.main.ScreenToWorldPoint(Input.mousePosition).y, 0);
-            TryRotate(transform.up - MoveToTarget);
-           
-        }
-    }
-    public void TryRotate(Vector3 target)
-    {
-        if(transform.rotation.eulerAngles.z - target.z > 5)
-        {
-            foreach (Neuron n in turnNeurons)
-            {
-                n.Flap(n.rotAmt);
-                n.Flap(-n.rotAmt);
-            }
-            TryRotate(target);
-        }
-        else
-        {
-            TryForward(MoveToTarget);
-        }
-        
-
-
-
-
-
-
-
-    }
-    public void TryForward(Vector3 target)
-    {
-        foreach (Neuron n in forwardNeurons)
-        {
-            n.Flap(n.forwardRotAmt);
-        }
-    }
-}
-
-public class Neuron : MonoBehaviour
-{
-    public List<Neuron> SubNeurons;
-    public delegate void Func();
-
-    public float rotAmt;
-    public float forwardRotAmt;
-    public Rigidbody2D body;
-    private void Start()
+    public Genes DNA;
+    public RaycastHit2D seenEnems;
+    public State moveState;
+    public Vector3 target;
+    #region Base Definers
+    public bool isProginator;
+    public bool isPlant;
+    #endregion
+    public float Hunger;
+    public float EnergyUsage;
+    Rigidbody2D body;
+    public List<FoodTypes> diet;
+    public void Start()
     {
         body = gameObject.GetComponent<Rigidbody2D>();
-    }
-    public void Flap(float amt)
-    {
-        body.MoveRotation(amt);
-        foreach(Neuron s in SubNeurons)
+        if (isProginator)
         {
-            if(amt == rotAmt)
+            DNA = new Genes(10, 5);
+        }
+        if (isPlant)
+        {
+            DNA.Speed = 0;
+        }
+        EnergyUsage = (1 * StatModifiers.SightMod) + (1 * StatModifiers.SpeedMod);
+        //target = transform.position = Random.insideUnitCircle * 3;
+    }
+    IEnumerator SetState(State state, float time = 0)
+    {
+        //yield return new WaitForSeconds(time);
+        moveState = state;
+        yield return null;
+       
+    }
+    public void Update()
+    {
+        if (moveState == State.lookingAround)
+        {
+            body.velocity = new Vector3(0, 0);
+            for(int i =0; i< 360; i++)
             {
-                s.Flap(s.rotAmt);
-                s.Flap(-s.rotAmt);
+                transform.Rotate(new Vector3(0, 0, 1));
+                
+               
+                if (i == 359)
+                {
+                    target = transform.position + QuickMath.RandomVector(-10, 10);
+                    moveState = State.MovingIdle;
+
+
+                }
+                //if(seenEnems.collider.gameObject)break
             }
-            else
+           
+            //SetState(State.MovingIdle);
+            
+
+        }
+       
+        if(moveState == State.MovingIdle)
+        {
+            transform.up = target - transform.position;
+            if (Vector2.Distance(transform.position, target) < 1)
             {
-                s.Flap(s.forwardRotAmt);
-                s.Flap(-s.forwardRotAmt);
+
+                moveState = State.lookingAround;
+
             }
+            body.velocity = transform.up * DNA.Speed;
             
         }
+     
+        Hunger += EnergyUsage * Time.deltaTime;
+        //transform.Rotate(new Vector3(0, 0, 1f));
+        seenEnems = Physics2D.Raycast(transform.up + new Vector3(0,DNA.Sight), new Vector2(DNA.Sight/4, DNA.Sight), transform.rotation.z);
+        if(Hunger > 500)
+        {
+            Die();
+        }
+
+    }
+    void LookAround()
+    {
+        
+
+    }
+    void Die()
+    {
+        Destroy(gameObject);
+    }
+    private void OnDrawGizmos()
+    {
+        Gizmos.DrawRay(transform.position, transform.up*DNA.Sight);
+    }
+    Transform GetClosestEnemy(Transform[] enemies)
+    {
+        Transform tMin = null;
+        float minDist = Mathf.Infinity;
+        Vector3 currentPos = transform.position;
+        foreach (Transform t in enemies)
+        {
+            float dist = Vector3.Distance(t.position, currentPos);
+            if (dist < minDist)
+            {
+                tMin = t;
+                minDist = dist;
+            }
+        }
+        return tMin;
+    }
+    private void OnTriggerEnter2D(Collider2D col)
+    {
+        if (diet.Contains(col.gameObject.GetComponent<Food>().foodType))
+        {
+            Destroy(col.gameObject);
+            Hunger -= col.gameObject.GetComponent<Food>().Nutrition;
+            if (Hunger < 0)
+            {
+                Hunger = 0;
+            }
+        }
+    }
+}
+[SerializeField]
+public struct Genes
+{
+    public float Sight;
+    public float Speed;
+    
+    public Genes(float s, float sp)
+    {
+        this.Sight = s;
+        this.Speed = sp;
+        
     }
 
-    
-   
 }
+public static class StatModifiers
+{
+    public static readonly float SightMod = 0.15f;
+    public static readonly float SpeedMod = 1.2f;
+}
+public static class QuickMath
+{
+    public static Vector3 RandomVector(float min, float max)
+    {
+        return new Vector3(Random.Range(min, max), Random.Range(min, max));
+    }
+}
+
