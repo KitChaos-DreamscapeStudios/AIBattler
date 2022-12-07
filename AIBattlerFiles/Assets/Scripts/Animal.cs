@@ -25,8 +25,15 @@ public class Animal : MonoBehaviour
     Rigidbody2D body;
     public List<FoodTypes> diet;
     float i;
+    public float age;
+    float reprodLap;
+    float reprodAge;
     public void Start()
     {
+        Hunger = 0;
+        age = 0;
+        reprodLap = 0;
+        reprodAge = Random.Range(75,150);
         body = gameObject.GetComponent<Rigidbody2D>();
         if (isProginator)
         {
@@ -36,17 +43,31 @@ public class Animal : MonoBehaviour
         {
             DNA.Speed = 0;
         }
-        EnergyUsage = (1 * StatModifiers.SightMod) + (1 * StatModifiers.SpeedMod);
+        EnergyUsage = (DNA.Sight * StatModifiers.SightMod) + (DNA.Speed * StatModifiers.SpeedMod);
         //target = transform.position = Random.insideUnitCircle * 3;
     }
     
     public void Update()
     {
-      
+        reprodLap += Time.deltaTime;
+        if(reprodLap > reprodAge && Hunger < 100)
+        {
+            Hunger -= 45;
+            reprodAge = Random.Range(75, 150);
+            reprodLap = 0;
+           var child = Instantiate(gameObject, transform.position + QuickMath.RandomVector(-5, 5), Quaternion.identity);
+            var ChildGenes = child.GetComponent<Animal>();
+            ChildGenes.isProginator = false;
+            ChildGenes.DNA.Sight += Random.Range(-2, maxInclusive: 2);
+            ChildGenes.DNA.Speed += Random.Range(-2, maxInclusive: 2);
+           
+
+        }
+
         if (moveState == State.lookingAround)
         {
 
-            i += 1;
+                i += 1;
                 transform.Rotate(new Vector3(0, 0, 1));
                 if (seenEnems)
                 {
@@ -93,15 +114,18 @@ public class Animal : MonoBehaviour
             
             
         }
-     
+        age += Time.deltaTime;
         Hunger += EnergyUsage * Time.deltaTime;
         //transform.Rotate(new Vector3(0, 0, 1f));
         seenEnems = Physics2D.Raycast(transform.position + transform.up *transform.localScale.y,transform.up,DNA.Sight);
-        if(Hunger > 500)
+        if(Hunger > 300)
         {
             Die();
         }
-
+        if(age > 500)
+        {
+            Die();
+        }
     }
     void LookAround()
     {
@@ -134,7 +158,7 @@ public class Animal : MonoBehaviour
     }
     private void OnTriggerEnter2D(Collider2D col)
     {
-         if (diet.Contains(col.gameObject.GetComponent<Food>().foodType) && Hunger > 100)
+         if (diet.Contains(col.gameObject.GetComponent<Food>().foodType) && Hunger > 20)
          {
             Destroy(col.gameObject);
             Hunger -= col.gameObject.GetComponent<Food>().Nutrition;
@@ -145,7 +169,7 @@ public class Animal : MonoBehaviour
         }
     }
 }
-[SerializeField]
+[System.Serializable]
 public struct Genes
 {
     public float Sight;
@@ -161,8 +185,8 @@ public struct Genes
 }
 public static class StatModifiers
 {
-    public static readonly float SightMod = 0.15f;
-    public static readonly float SpeedMod = 1.2f;
+    public static readonly float SightMod = 0.15f/2;
+    public static readonly float SpeedMod = 1.2f/2;
 }
 public static class QuickMath
 {

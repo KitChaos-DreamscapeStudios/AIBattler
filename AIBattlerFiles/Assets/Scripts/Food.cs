@@ -19,8 +19,8 @@ public class Food : MonoBehaviour
     void Start()
     {
         Lifespan = 0;
-        reProdSpan = Random.Range(40, 130);
-        Deathspan = Random.Range(60, 150);
+        reProdSpan = Random.Range(20, 65);
+        Deathspan = reProdSpan - 5 +Random.Range(30, 75);
     }
 
     // Update is called once per frame

@@ -155,7 +155,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   foodType: 0
-  Nutrition: 10
+  Nutrition: 30
   Lifespan: 0
 --- !u!61 &172314642
 BoxCollider2D:
@@ -260,6 +260,7 @@ GameObject:
   - component: {fileID: 324149856}
   - component: {fileID: 324149855}
   - component: {fileID: 324149854}
+  - component: {fileID: 324149857}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -332,6 +333,18 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &324149857
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 324149853}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1eca3e704439cb449885d4859a8ee5b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &428507330
 GameObject:
   m_ObjectHideFlags: 0
@@ -364,7 +377,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   foodType: 0
-  Nutrition: 10
+  Nutrition: 30
   Lifespan: 0
 --- !u!61 &428507332
 BoxCollider2D:
@@ -490,7 +503,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   foodType: 0
-  Nutrition: 10
+  Nutrition: 30
   Lifespan: 0
 --- !u!61 &530097015
 BoxCollider2D:
@@ -616,7 +629,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   foodType: 0
-  Nutrition: 10
+  Nutrition: 30
   Lifespan: 0
 --- !u!61 &548040884
 BoxCollider2D:
@@ -723,6 +736,7 @@ GameObject:
   - component: {fileID: 1237345076}
   - component: {fileID: 1237345077}
   - component: {fileID: 1237345078}
+  - component: {fileID: 1237345079}
   m_Layer: 0
   m_Name: Animal
   m_TagString: Untagged
@@ -808,6 +822,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20ee5e58fb9801a46915fe28bec9b997, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  DNA:
+    Sight: 0
+    Speed: 0
   moveState: 2
   target: {x: 0, y: 0, z: 0}
   isProginator: 1
@@ -815,6 +832,7 @@ MonoBehaviour:
   Hunger: 0
   EnergyUsage: 0
   diet: 00000000
+  age: 0
 --- !u!50 &1237345077
 Rigidbody2D:
   serializedVersion: 4
@@ -862,6 +880,21 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &1237345079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1237345073}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61468820a7ba16943acc210f03bb4ef5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  foodType: 1
+  Nutrition: 0
+  Lifespan: 0
 --- !u!1 &2063862246
 GameObject:
   m_ObjectHideFlags: 0
