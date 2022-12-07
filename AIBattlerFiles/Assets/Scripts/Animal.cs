@@ -33,17 +33,25 @@ public class Animal : MonoBehaviour
         Hunger = 0;
         age = 0;
         reprodLap = 0;
-        reprodAge = Random.Range(75,150);
+        reprodAge = Random.Range(35,120);
         body = gameObject.GetComponent<Rigidbody2D>();
         if (isProginator)
         {
-            DNA = new Genes(10, 5);
+            DNA = new Genes(20, 3, 2, 0, new Color(255,255,255));
         }
         if (isPlant)
         {
             DNA.Speed = 0;
         }
-        EnergyUsage = (DNA.Sight * StatModifiers.SightMod) + (DNA.Speed * StatModifiers.SpeedMod);
+        DNA.Speed -= DNA.Resilliance / 2;
+        if(DNA.Speed < 0)
+        {
+            DNA.Speed = 0;
+        }
+        EnergyUsage = (DNA.Sight * StatModifiers.SightMod) + (DNA.Speed * StatModifiers.SpeedMod) + (DNA.Resilliance*StatModifiers.Resilliance) + (DNA.Damage * StatModifiers.Damage);
+        gameObject.GetComponent<SpriteRenderer>().color = DNA.color;
+        transform.localScale = new Vector3(DNA.Resilliance/2, DNA.Resilliance/2);
+        gameObject.GetComponent<Food>().Nutrition = DNA.Resilliance * 10;
         //target = transform.position = Random.insideUnitCircle * 3;
     }
     
@@ -52,7 +60,7 @@ public class Animal : MonoBehaviour
         reprodLap += Time.deltaTime;
         if(reprodLap > reprodAge && Hunger < 100)
         {
-            Hunger -= 45;
+            Hunger += 45;
             reprodAge = Random.Range(75, 150);
             reprodLap = 0;
            var child = Instantiate(gameObject, transform.position + QuickMath.RandomVector(-5, 5), Quaternion.identity);
@@ -60,7 +68,45 @@ public class Animal : MonoBehaviour
             ChildGenes.isProginator = false;
             ChildGenes.DNA.Sight += Random.Range(-2, maxInclusive: 2);
             ChildGenes.DNA.Speed += Random.Range(-2, maxInclusive: 2);
-           
+            ChildGenes.DNA.Damage += Random.Range(-2, maxInclusive: 2);
+            ChildGenes.DNA.Resilliance += Random.Range(-1, maxInclusive: 1);
+            ChildGenes.DNA.color = DNA.color + new Color(Random.Range(-10, maxInclusive: 10), Random.Range(-10, maxInclusive: 10), Random.Range(-10, maxInclusive: 10));
+            if(Random.Range(0,101) > 80)
+            {
+                var AddOrRem = Mathf.Round(Random.Range(0, 2));
+                if(AddOrRem == 0 && ChildGenes.diet.Count > 1)
+                {
+                    ChildGenes.diet.RemoveAt(0);
+                }
+                else if(AddOrRem == 1)
+                {
+                    var FoodType = Mathf.Round(Random.Range(0, 2));
+                    if(FoodType == 0)
+                    {
+                        ChildGenes.diet.Add(FoodTypes.Plant);
+                    }
+                    if(FoodType == 1)
+                    {
+                        ChildGenes.diet.Add(FoodTypes.Prey);
+                    }
+                }
+            }
+            #region Check Zero
+            if(ChildGenes.DNA.Sight < 0)
+            {
+                ChildGenes.DNA.Sight = 0;
+            }if(ChildGenes.DNA.Speed < 0)
+            {
+                ChildGenes.DNA.Speed = 0;
+            }if(ChildGenes.DNA.Damage < 0)
+            {
+                ChildGenes.DNA.Damage = 0;
+            }if(ChildGenes.DNA.Resilliance < 0)
+            {
+                ChildGenes.DNA.Resilliance = 0;
+            }
+            #endregion
+
 
         }
 
@@ -73,12 +119,20 @@ public class Animal : MonoBehaviour
                 {
                     if (diet.Contains(seenEnems.collider.gameObject.GetComponent<Food>().foodType))
                     {
-                        if(Random.Range(Hunger,500) > 450)
+                        if(Random.Range(Hunger,300) > 260)
                         {
                             target = seenEnems.transform.position;
                             moveState = State.MovingIdle;
                         }
                        
+                    }
+                    if (seenEnems.collider.GetComponent<Animal>())
+                    {
+                        if (seenEnems.collider.GetComponent<Animal>().diet.Contains(GetComponent<Food>().foodType))
+                        {
+                            target =  transform.position -transform.up * DNA.Sight;
+                            moveState = State.Fleeing;
+                        }
                     }
                    
                 }
@@ -114,15 +168,30 @@ public class Animal : MonoBehaviour
             
             
         }
+        if (moveState == State.Fleeing)
+        {
+            transform.up = target - transform.position;
+            body.velocity = transform.up * (DNA.Speed*2);
+            if (Vector2.Distance(transform.position, target) < 0.1f)
+            {
+                i = 0;
+                body.velocity = new Vector3(0, 0);
+                moveState = State.lookingAround;
+
+            }
+            Hunger += EnergyUsage * Time.deltaTime;
+
+
+        }
         age += Time.deltaTime;
         Hunger += EnergyUsage * Time.deltaTime;
         //transform.Rotate(new Vector3(0, 0, 1f));
         seenEnems = Physics2D.Raycast(transform.position + transform.up *transform.localScale.y,transform.up,DNA.Sight);
-        if(Hunger > 300)
+        if(Hunger > 150)
         {
             Die();
         }
-        if(age > 500)
+        if(age > 300)
         {
             Die();
         }
@@ -158,14 +227,32 @@ public class Animal : MonoBehaviour
     }
     private void OnTriggerEnter2D(Collider2D col)
     {
-         if (diet.Contains(col.gameObject.GetComponent<Food>().foodType) && Hunger > 20)
+         if (diet.Contains(col.gameObject.GetComponent<Food>().foodType) && Hunger > 10 && moveState != State.Fleeing)
          {
-            Destroy(col.gameObject);
-            Hunger -= col.gameObject.GetComponent<Food>().Nutrition;
-            if(Hunger < 0)
+            if (col.GetComponent<Animal>())
             {
-                Hunger = 0;
+                var PreyGenes = col.GetComponent<Animal>();
+                if(Random.Range(PreyGenes.DNA.Resilliance/2, PreyGenes.DNA.Resilliance) + DNA.Damage > PreyGenes.DNA.Damage)
+                {
+                    Destroy(col.gameObject);
+                    Hunger -= col.gameObject.GetComponent<Food>().Nutrition;
+                    if (Hunger < 0)
+                    {
+                        Hunger = 0;
+                    }
+                }
             }
+            else
+            {
+
+                Destroy(col.gameObject);
+                Hunger -= col.gameObject.GetComponent<Food>().Nutrition;
+                if (Hunger < 0)
+                {
+                    Hunger = 0;
+                }
+            }
+            
         }
     }
 }
@@ -174,11 +261,17 @@ public struct Genes
 {
     public float Sight;
     public float Speed;
+    public Color color;
+    public float Resilliance;
+    public float Damage;
     
-    public Genes(float s, float sp)
+    public Genes(float s, float sp, float r, float d, Color c)
     {
         this.Sight = s;
         this.Speed = sp;
+        this.color = c;
+        this.Damage = d;
+        this.Resilliance = r;
         
     }
 
@@ -187,6 +280,9 @@ public static class StatModifiers
 {
     public static readonly float SightMod = 0.15f/2;
     public static readonly float SpeedMod = 1.2f/2;
+    public static readonly float Resilliance = 0.9f / 2;
+    public static readonly float Damage = 1.1f / 2;
+    
 }
 public static class QuickMath
 {
