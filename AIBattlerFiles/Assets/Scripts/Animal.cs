@@ -37,7 +37,7 @@ public class Animal : MonoBehaviour
         body = gameObject.GetComponent<Rigidbody2D>();
         if (isProginator)
         {
-            DNA = new Genes(20, 3, 2, 0, new Color(255,255,255));
+            DNA = new Genes(20, 4, 2, 0, new Color(255,255,255));
         }
         if (isPlant)
         {
@@ -50,8 +50,8 @@ public class Animal : MonoBehaviour
         }
         EnergyUsage = (DNA.Sight * StatModifiers.SightMod) + (DNA.Speed * StatModifiers.SpeedMod) + (DNA.Resilliance*StatModifiers.Resilliance) + (DNA.Damage * StatModifiers.Damage);
         gameObject.GetComponent<SpriteRenderer>().color = DNA.color;
-        transform.localScale = new Vector3(DNA.Resilliance/2, DNA.Resilliance/2);
-        gameObject.GetComponent<Food>().Nutrition = DNA.Resilliance * 10;
+        transform.localScale = new Vector3(DNA.Resilliance/2, DNA.Damage/2 +DNA.Resilliance/2);
+        gameObject.GetComponent<Food>().Nutrition = DNA.Resilliance * 20;
         //target = transform.position = Random.insideUnitCircle * 3;
     }
     
@@ -67,10 +67,10 @@ public class Animal : MonoBehaviour
             var ChildGenes = child.GetComponent<Animal>();
             ChildGenes.isProginator = false;
             ChildGenes.DNA.Sight += Random.Range(-2, maxInclusive: 2);
-            ChildGenes.DNA.Speed += Random.Range(-2, maxInclusive: 2);
+            ChildGenes.DNA.Speed += Random.Range(-2, maxInclusive: 3);
             ChildGenes.DNA.Damage += Random.Range(-2, maxInclusive: 2);
             ChildGenes.DNA.Resilliance += Random.Range(-1, maxInclusive: 1);
-            ChildGenes.DNA.color = DNA.color + new Color(Random.Range(-10, maxInclusive: 10), Random.Range(-10, maxInclusive: 10), Random.Range(-10, maxInclusive: 10));
+            ChildGenes.DNA.color = DNA.color + new Color(Random.Range(-20, maxInclusive: 20), Random.Range(-20, maxInclusive: 20), Random.Range(-20, maxInclusive: 20));
             if(Random.Range(0,101) > 80)
             {
                 var AddOrRem = Mathf.Round(Random.Range(0, 2));
@@ -113,17 +113,20 @@ public class Animal : MonoBehaviour
         if (moveState == State.lookingAround)
         {
 
-                i += 1;
-                transform.Rotate(new Vector3(0, 0, 1));
+                i += 1*DNA.Speed;
+                transform.Rotate(new Vector3(0, 0, 1*DNA.Speed));
                 if (seenEnems)
                 {
+                   
                     if (diet.Contains(seenEnems.collider.gameObject.GetComponent<Food>().foodType))
                     {
-                        if(Random.Range(Hunger,300) > 260)
+                        if(Random.Range(Hunger,150) > 100)
                         {
                             target = seenEnems.transform.position;
                             moveState = State.MovingIdle;
                         }
+                      
+                       
                        
                     }
                     if (seenEnems.collider.GetComponent<Animal>())
@@ -280,8 +283,8 @@ public static class StatModifiers
 {
     public static readonly float SightMod = 0.15f/2;
     public static readonly float SpeedMod = 1.2f/2;
-    public static readonly float Resilliance = 0.9f / 2;
-    public static readonly float Damage = 1.1f / 2;
+    public static readonly float Resilliance = 0.7f / 2;
+    public static readonly float Damage = 1f / 2;
     
 }
 public static class QuickMath
