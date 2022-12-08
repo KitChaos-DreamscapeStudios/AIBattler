@@ -76,11 +76,11 @@ public class Animal : MonoBehaviour
             DNA.Speed = 0;
         }
         DNA.Speed -= DNA.Resilliance / 2;
-        if(DNA.Speed < 0)
+        if(DNA.Speed <= 0)
         {
-            DNA.Speed = 0;
+            DNA.Speed = Random.Range(0, maxInclusive:1) ;
         }
-        EnergyUsage = (DNA.Sight * StatModifiers.SightMod) + (DNA.Speed * StatModifiers.SpeedMod) + (DNA.Resilliance*StatModifiers.Resilliance) + (DNA.Damage * StatModifiers.Damage) +(diet.Count * 0.1f);
+        EnergyUsage = (DNA.Sight * StatModifiers.SightMod) + (DNA.Speed * StatModifiers.SpeedMod) + (DNA.Resilliance*StatModifiers.Resilliance) + (DNA.Damage * StatModifiers.Damage) +(diet.Count * 0.4f);
         int g=0;
         int r=0;
         int b=0;
@@ -97,7 +97,7 @@ public class Animal : MonoBehaviour
              b = 255;
         }
         gameObject.GetComponent<SpriteRenderer>().color = new Color(r, g, b);
-        transform.localScale = new Vector3(DNA.Resilliance/2, DNA.Damage/2 +DNA.Resilliance/2);
+        transform.localScale = new Vector3(DNA.Resilliance, DNA.Damage +DNA.Resilliance);
         gameObject.GetComponent<Food>().Nutrition = DNA.Resilliance * 50;
         if(diet.Contains(FoodTypes.Prey) && DNA.Damage == 0)
         {
@@ -124,7 +124,7 @@ public class Animal : MonoBehaviour
         {
             
             
-            AnimalData.text = $"{Name}\nAge: {Mathf.Round(age)}\nParent: {Parent}\nHunger:{Hunger}\nEnergy Usage:{EnergyUsage}\nGenes:\nSight:{DNA.Sight}\nSpeed:{DNA.Speed}\nDamage:{DNA.Damage}\nResilliance:{DNA.Resilliance}\nDiet:{GetDietAsString(diet)}";
+            AnimalData.text = $"{Name}\nAge: {Mathf.Round(age)}\nParent: {Parent}\nHunger: {Hunger.ToString("F2")}\nEnergy Usage: {EnergyUsage.ToString("F2")}\nGenes:\nSight: {DNA.Sight.ToString("F2")}\nSpeed: {DNA.Speed.ToString("F2")}\nDamage: {DNA.Damage.ToString("F2")}\nResilliance: {DNA.Resilliance.ToString("F2")}\nDiet: {GetDietAsString(diet)}";
         }
        
         reprodLap += Time.deltaTime;
@@ -140,7 +140,7 @@ public class Animal : MonoBehaviour
             ChildGenes.DNA.Speed += Random.Range(-2, maxInclusive: 3);
             ChildGenes.DNA.Damage += Random.Range(-2, maxInclusive: 2);
             ChildGenes.DNA.Resilliance += Random.Range(-1, maxInclusive: 1);
-            ChildGenes.DNA.color = DNA.color + new Color(Random.Range(-20, maxInclusive: 20), Random.Range(-20, maxInclusive: 20), Random.Range(-20, maxInclusive: 20));
+            //ChildGenes.DNA.color = DNA.color + new Color(Random.Range(-20, maxInclusive: 20), Random.Range(-20, maxInclusive: 20), Random.Range(-20, maxInclusive: 20));
             ChildGenes.Name = AnimalNames.GenName();
             ChildGenes.Parent = Name;
             if(Random.Range(0,101) > 65)
@@ -364,22 +364,7 @@ public class Animal : MonoBehaviour
             
         }
     }
-    private void OnTriggerStay2D(Collider2D col)
-    {
-        if (diet.Contains(col.gameObject.GetComponent<Food>().foodType) && Hunger > 10 && moveState != State.Fleeing)
-        {
-           
 
-                Destroy(col.gameObject);
-                Hunger -= col.gameObject.GetComponent<Food>().Nutrition;
-                if (Hunger < 0)
-                {
-                    Hunger = 0;
-                }
-            
-
-        }
-    }
 }
 [System.Serializable]
 public struct Genes
@@ -404,8 +389,8 @@ public struct Genes
 public static class StatModifiers
 {
     public static readonly float SightMod = 0.15f/2;
-    public static readonly float SpeedMod = 1.2f/2;
-    public static readonly float Resilliance = 0.7f / 2;
+    public static readonly float SpeedMod = 0.7f/2;
+    public static readonly float Resilliance = 1.2f / 2;
     public static readonly float Damage = 1f / 2;
     
 }

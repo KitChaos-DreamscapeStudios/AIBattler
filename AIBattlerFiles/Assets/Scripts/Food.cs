@@ -35,14 +35,21 @@ public class Food : MonoBehaviour
         if(foodType == FoodTypes.Plant && Lifespan > reProdSpan && !HasReproduced)
         {
             HasReproduced = true;
-            for(int i =0; i<Random.Range(1, 5); i++)
+            for(int i =0; i<Random.Range(1, 4); i++)
             {
-                Instantiate(gameObject, transform.position + QuickMath.RandomVector(-10, 10), Quaternion.identity);
+                Instantiate(gameObject, transform.position + QuickMath.RandomVector(-25, 25), Quaternion.identity);
             }
         }
         if((foodType == FoodTypes.Plant || foodType == FoodTypes.Carrion) && Lifespan > Deathspan)
         {
             Destroy(gameObject);
+        }
+    }
+    private void OnTriggerEnter2D(Collision2D collision)
+    {
+        if(foodType == FoodTypes.Plant)
+        {
+            Deathspan -= 10;
         }
     }
 }

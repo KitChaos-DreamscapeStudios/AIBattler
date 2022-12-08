@@ -7,6 +7,7 @@ public class CamMovement : MonoBehaviour
     float horizontal;
     float vertical;
     bool isPaused;
+    float elap;
     
     // Start is called before the first frame update
     void Start()
@@ -20,7 +21,7 @@ public class CamMovement : MonoBehaviour
         timeScale.text = $"Time Speed: {Time.timeScale}";
         horizontal = Input.GetAxisRaw("Horizontal");
         vertical = Input.GetAxisRaw("Vertical");
-        transform.position += new Vector3(horizontal / 4, vertical / 4);
+        transform.position += new Vector3(horizontal / 2, vertical / 2);
         Camera.main.orthographicSize -= Input.mouseScrollDelta.y;
         if(Camera.main.orthographicSize < 5)
         {
