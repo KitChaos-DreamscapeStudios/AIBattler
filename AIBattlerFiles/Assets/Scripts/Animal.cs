@@ -2,8 +2,23 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+public static class AnimalNames
+{
+    public static List<char> Letters = new List<char> {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'};
+    public static string GenName()
+    {
+        string Name = "";
+        for(int i = 0; i < 10; i++)
+        {
+            Name += Letters[Random.Range(0, Letters.Count)];
+        }
+        return Name;
+    }
+}
 public class Animal : MonoBehaviour
 {
+  
+    public TMPro.TextMeshProUGUI AnimalData;
     public enum State 
     {
         Fleeing,
@@ -28,16 +43,31 @@ public class Animal : MonoBehaviour
     public float age;
     float reprodLap;
     float reprodAge;
+    public string Name;
+    public string Parent;
+    bool ShowData;
+    public void OnMouseEnter()
+    {
+        ShowData = true;
+    }
+    public void OnMouseExit()
+    {
+        ShowData = false;
+        AnimalData.text = "";
+    }
     public void Start()
     {
+        gameObject.name = Name;
+        AnimalData = GameObject.Find("SelectedAnimalData").GetComponent<TMPro.TextMeshProUGUI>();
         Hunger = 0;
         age = 0;
         reprodLap = 0;
-        reprodAge = Random.Range(35,120);
+        reprodAge = Random.Range(25,80);
         body = gameObject.GetComponent<Rigidbody2D>();
         if (isProginator)
         {
             DNA = new Genes(20, 4, 2, 0, new Color(255,255,255));
+            Name = AnimalNames.GenName();
         }
         if (isPlant)
         {
@@ -48,20 +78,58 @@ public class Animal : MonoBehaviour
         {
             DNA.Speed = 0;
         }
-        EnergyUsage = (DNA.Sight * StatModifiers.SightMod) + (DNA.Speed * StatModifiers.SpeedMod) + (DNA.Resilliance*StatModifiers.Resilliance) + (DNA.Damage * StatModifiers.Damage);
-        gameObject.GetComponent<SpriteRenderer>().color = DNA.color;
+        EnergyUsage = (DNA.Sight * StatModifiers.SightMod) + (DNA.Speed * StatModifiers.SpeedMod) + (DNA.Resilliance*StatModifiers.Resilliance) + (DNA.Damage * StatModifiers.Damage) +(diet.Count * 0.1f);
+        int g=0;
+        int r=0;
+        int b=0;
+        if (diet.Contains(FoodTypes.Plant))
+        {
+             g = 255;
+        }
+        if (diet.Contains(FoodTypes.Prey))
+        {
+             r = 255;
+        }
+        if (diet.Contains(FoodTypes.Carrion))
+        {
+             b = 255;
+        }
+        gameObject.GetComponent<SpriteRenderer>().color = new Color(r, g, b);
         transform.localScale = new Vector3(DNA.Resilliance/2, DNA.Damage/2 +DNA.Resilliance/2);
         gameObject.GetComponent<Food>().Nutrition = DNA.Resilliance * 20;
+        if(diet.Contains(FoodTypes.Prey) && DNA.Damage == 0)
+        {
+            DNA.Damage = Random.Range(0, maxInclusive:1);
+        }
         //target = transform.position = Random.insideUnitCircle * 3;
+    }
+    string GetDietAsString(List<FoodTypes> d)
+    {
+        string retStr = "";
+        foreach(FoodTypes food in d)
+        {
+            
+            retStr += food.ToString() + ", ";
+        }
+       
+        return retStr;
     }
     
     public void Update()
     {
+        
+        if (ShowData)
+        {
+            
+            
+            AnimalData.text = $"{Name}\nAge: {Mathf.Round(age)}\nParent: {Parent}\nHunger:{Hunger}\nEnergy Usage:{EnergyUsage}\nGenes:\nSight:{DNA.Sight}\nSpeed:{DNA.Speed}\nDamage:{DNA.Damage}\nResilliance:{DNA.Resilliance}\nDiet:{GetDietAsString(diet)}";
+        }
+       
         reprodLap += Time.deltaTime;
         if(reprodLap > reprodAge && Hunger < 100)
         {
             Hunger += 45;
-            reprodAge = Random.Range(75, 150);
+            reprodAge = Random.Range(25, 50);
             reprodLap = 0;
            var child = Instantiate(gameObject, transform.position + QuickMath.RandomVector(-5, 5), Quaternion.identity);
             var ChildGenes = child.GetComponent<Animal>();
@@ -71,6 +139,8 @@ public class Animal : MonoBehaviour
             ChildGenes.DNA.Damage += Random.Range(-2, maxInclusive: 2);
             ChildGenes.DNA.Resilliance += Random.Range(-1, maxInclusive: 1);
             ChildGenes.DNA.color = DNA.color + new Color(Random.Range(-20, maxInclusive: 20), Random.Range(-20, maxInclusive: 20), Random.Range(-20, maxInclusive: 20));
+            ChildGenes.Name = AnimalNames.GenName();
+            ChildGenes.Parent = Name;
             if(Random.Range(0,101) > 80)
             {
                 var AddOrRem = Mathf.Round(Random.Range(0, 2));
@@ -140,10 +210,10 @@ public class Animal : MonoBehaviour
                    
                 }
 
-                if (i == 359)
+                if (i >= 359)
                 {
 
-                //moveState = State.MovingIdle;
+                    //moveState = State.MovingIdle;
                     target = transform.position + QuickMath.RandomVector(-10, 10);
 
                     moveState = State.MovingIdle;
@@ -161,6 +231,14 @@ public class Animal : MonoBehaviour
         {
             transform.up = target - transform.position;
             body.velocity = transform.up * DNA.Speed;
+            if (seenEnems)
+            {
+                if (diet.Contains(FoodTypes.Prey) && seenEnems.collider.GetComponent<Food>().foodType == FoodTypes.Prey)
+                {
+                    body.velocity = transform.up * DNA.Speed*2;
+                }
+            }
+            
             if (Vector2.Distance(transform.position, target) < 0.1f)
             {
                 i = 0;
@@ -235,7 +313,7 @@ public class Animal : MonoBehaviour
             if (col.GetComponent<Animal>())
             {
                 var PreyGenes = col.GetComponent<Animal>();
-                if(Random.Range(PreyGenes.DNA.Resilliance/2, PreyGenes.DNA.Resilliance) + DNA.Damage > PreyGenes.DNA.Damage)
+                if(Random.Range(PreyGenes.DNA.Resilliance/2, PreyGenes.DNA.Resilliance) + DNA.Damage > PreyGenes.DNA.Resilliance)
                 {
                     Destroy(col.gameObject);
                     Hunger -= col.gameObject.GetComponent<Food>().Nutrition;

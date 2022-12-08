@@ -21,6 +21,7 @@ public class PlatformerMovement: MonoBehaviour
     public Enemy enemy;
     public GameObject HealthBar;
     float JumpElap;
+    
     // Start is called before the first frame update
     //Additional Instructions
     //Make sure the object you attatch this to has a Rigidbody2D component attatched to it, and there is a square below it with the Layer "Ground"
