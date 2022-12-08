@@ -27,6 +27,8 @@ public class Animal : MonoBehaviour
         lookingAround,
         Idle
     }
+    public GameObject HuntedCorpse;
+    public GameObject Corpse;
     public Genes DNA;
     public RaycastHit2D seenEnems;
     public State moveState;
@@ -96,7 +98,7 @@ public class Animal : MonoBehaviour
         }
         gameObject.GetComponent<SpriteRenderer>().color = new Color(r, g, b);
         transform.localScale = new Vector3(DNA.Resilliance/2, DNA.Damage/2 +DNA.Resilliance/2);
-        gameObject.GetComponent<Food>().Nutrition = DNA.Resilliance * 20;
+        gameObject.GetComponent<Food>().Nutrition = DNA.Resilliance * 50;
         if(diet.Contains(FoodTypes.Prey) && DNA.Damage == 0)
         {
             DNA.Damage = Random.Range(0, maxInclusive:1);
@@ -141,7 +143,7 @@ public class Animal : MonoBehaviour
             ChildGenes.DNA.color = DNA.color + new Color(Random.Range(-20, maxInclusive: 20), Random.Range(-20, maxInclusive: 20), Random.Range(-20, maxInclusive: 20));
             ChildGenes.Name = AnimalNames.GenName();
             ChildGenes.Parent = Name;
-            if(Random.Range(0,101) > 80)
+            if(Random.Range(0,101) > 65)
             {
                 var AddOrRem = Mathf.Round(Random.Range(0, 2));
                 if(AddOrRem == 0 && ChildGenes.diet.Count > 1)
@@ -150,14 +152,18 @@ public class Animal : MonoBehaviour
                 }
                 else if(AddOrRem == 1)
                 {
-                    var FoodType = Mathf.Round(Random.Range(0, 2));
+                    var FoodType = Mathf.Round(Random.Range(0, 3));
                     if(FoodType == 0)
                     {
                         ChildGenes.diet.Add(FoodTypes.Plant);
                     }
-                    if(FoodType == 1)
+                    if (FoodType == 1)
                     {
                         ChildGenes.diet.Add(FoodTypes.Prey);
+                    }
+                    if (FoodType == 2)
+                    {
+                        ChildGenes.diet.Add(FoodTypes.Carrion);
                     }
                 }
             }
@@ -268,7 +274,19 @@ public class Animal : MonoBehaviour
         Hunger += EnergyUsage * Time.deltaTime;
         //transform.Rotate(new Vector3(0, 0, 1f));
         seenEnems = Physics2D.Raycast(transform.position + transform.up *transform.localScale.y,transform.up,DNA.Sight);
-        if(Hunger > 150)
+        if (seenEnems)
+        {
+            if (seenEnems.collider.GetComponent<Animal>())
+            {
+                if (seenEnems.collider.GetComponent<Animal>().diet.Contains(GetComponent<Food>().foodType))
+                {
+                    target = transform.position - transform.up * DNA.Sight;
+                    moveState = State.Fleeing;
+                }
+            }
+        }
+      
+        if (Hunger > 150)
         {
             Die();
         }
@@ -284,6 +302,16 @@ public class Animal : MonoBehaviour
     }
     void Die()
     {
+        var corpse = Instantiate(Corpse, transform.position, Quaternion.identity);
+        corpse.transform.eulerAngles = transform.eulerAngles;
+        corpse.transform.localScale = transform.localScale;
+        Destroy(gameObject);
+    }
+    void DieHunted()
+    {
+        var corpse = Instantiate(HuntedCorpse, transform.position, Quaternion.identity);
+        corpse.transform.eulerAngles = transform.eulerAngles;
+        corpse.transform.localScale = transform.localScale;
         Destroy(gameObject);
     }
     private void OnDrawGizmos()
@@ -313,9 +341,9 @@ public class Animal : MonoBehaviour
             if (col.GetComponent<Animal>())
             {
                 var PreyGenes = col.GetComponent<Animal>();
-                if(Random.Range(PreyGenes.DNA.Resilliance/2, PreyGenes.DNA.Resilliance) + DNA.Damage > PreyGenes.DNA.Resilliance)
+                if(Random.Range(PreyGenes.DNA.Resilliance/2, PreyGenes.DNA.Resilliance) + DNA.Damage*2 > PreyGenes.DNA.Resilliance)
                 {
-                    Destroy(col.gameObject);
+                    col.GetComponent<Animal>().DieHunted();
                     Hunger -= col.gameObject.GetComponent<Food>().Nutrition;
                     if (Hunger < 0)
                     {
@@ -334,6 +362,22 @@ public class Animal : MonoBehaviour
                 }
             }
             
+        }
+    }
+    private void OnTriggerStay2D(Collider2D col)
+    {
+        if (diet.Contains(col.gameObject.GetComponent<Food>().foodType) && Hunger > 10 && moveState != State.Fleeing)
+        {
+           
+
+                Destroy(col.gameObject);
+                Hunger -= col.gameObject.GetComponent<Food>().Nutrition;
+                if (Hunger < 0)
+                {
+                    Hunger = 0;
+                }
+            
+
         }
     }
 }

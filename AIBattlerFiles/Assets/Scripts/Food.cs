@@ -19,8 +19,13 @@ public class Food : MonoBehaviour
     void Start()
     {
         Lifespan = 0;
-        reProdSpan = Random.Range(10, 45);
+        reProdSpan = Random.Range(20, 85);
         Deathspan = reProdSpan - 10 +Random.Range(5, 25);
+        if(foodType == FoodTypes.Carrion)
+        {
+            Deathspan += 150;
+            Nutrition += transform.localScale.x * 20;
+        }
     }
 
     // Update is called once per frame
@@ -30,7 +35,7 @@ public class Food : MonoBehaviour
         if(foodType == FoodTypes.Plant && Lifespan > reProdSpan && !HasReproduced)
         {
             HasReproduced = true;
-            for(int i =0; i<Random.Range(1, 4); i++)
+            for(int i =0; i<Random.Range(1, 5); i++)
             {
                 Instantiate(gameObject, transform.position + QuickMath.RandomVector(-10, 10), Quaternion.identity);
             }
