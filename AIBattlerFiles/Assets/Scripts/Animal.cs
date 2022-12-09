@@ -15,6 +15,7 @@ public static class AnimalNames
         return Name;
     }
 }
+
 public class Animal : MonoBehaviour
 {
   
@@ -29,6 +30,7 @@ public class Animal : MonoBehaviour
         Hunting
         
     }
+    public GameObject Orient;
     public GameObject HuntedCorpse;
     public GameObject Corpse;
     public Genes DNA;
@@ -55,6 +57,8 @@ public class Animal : MonoBehaviour
     public GameObject Legs;
     public GameObject Eyes;
     public List<Genes.Optimizers> optimizers;
+    public Vector3 Basescale;//Used for flipping
+  
     public delegate float optiDelegate(List<Genes.Optimizers> optimizers, Genes.Optimizers targetOpti);
     public void OnMouseEnter()
     {
@@ -67,6 +71,7 @@ public class Animal : MonoBehaviour
     }
     public void Start()
     {
+        Basescale = transform.localScale;
         gameObject.name = Name;
         AnimalData = GameObject.Find("SelectedAnimalData").GetComponent<TMPro.TextMeshProUGUI>();
         Hunger = 0;
@@ -105,11 +110,11 @@ public class Animal : MonoBehaviour
              b = 255;
         }
         gameObject.GetComponent<SpriteRenderer>().color = new Color(r, g, b);
-        transform.localScale = new Vector3(DNA.Resilliance, DNA.Resilliance);
+        transform.localScale = new Vector3(DNA.Resilliance*1.5f, DNA.Resilliance);
         gameObject.GetComponent<Food>().Nutrition = DNA.Resilliance * 50;
         Eyes.transform.localScale = new Vector3(DNA.Sight / 30, DNA.Sight / 30);
-        Legs.transform.localScale = new Vector3(DNA.Speed/2, DNA.Speed/2);
-        Claws.transform.localScale = new Vector3(DNA.Damage*1.5f, DNA.Damage*1.5f);
+        Legs.transform.localScale = new Vector3(DNA.Speed*0.1f, DNA.Speed*0.2f);
+        Claws.transform.localScale = new Vector3(DNA.Damage*0.5f, DNA.Damage);
         if (diet.Contains(FoodTypes.Prey) && DNA.Damage == 0)
         {
             DNA.Damage = Random.Range(0, maxInclusive:1);
@@ -146,6 +151,17 @@ public class Animal : MonoBehaviour
     }
     public void Update()
     {
+       
+        if (target.x - transform.position.x > 0)
+        {
+            
+            transform.localScale = new Vector3(-Basescale.x, Basescale.y);
+        }
+        else
+        {
+            
+            transform.localScale = Basescale;
+        }
         optiDelegate optis = (x, y) => {
             foreach (Genes.Optimizers opt in x)
             {
@@ -249,13 +265,13 @@ public class Animal : MonoBehaviour
         }
         if(moveState == State.Hunting)
         {
-            transform.up = target - transform.position;
-            body.velocity = transform.up * (DNA.Speed * 2 + optis(optimizers, Genes.Optimizers.Ergonomics));
+            Orient.transform.up = target - transform.position;
+            body.velocity = Orient.transform.up * (DNA.Speed * 2 + optis(optimizers, Genes.Optimizers.Ergonomics));
             if (seenEnems)
             {
                 if (diet.Contains(FoodTypes.Prey) && seenEnems.collider.GetComponent<Food>().foodType == FoodTypes.Prey)
                 {
-                    body.velocity = transform.up * (DNA.Speed * 2 + optis(optimizers, Genes.Optimizers.Ergonomics));
+                    body.velocity = Orient.transform.up * (DNA.Speed * 2 + optis(optimizers, Genes.Optimizers.Ergonomics));
                 }
             }
 
@@ -279,7 +295,7 @@ public class Animal : MonoBehaviour
         {
 
                 i += 1*DNA.Speed;
-                transform.Rotate(new Vector3(0, 0, 1*DNA.Speed));
+                Orient.transform.Rotate(new Vector3(0, 0, 1*DNA.Speed));
                 if (seenEnems)
                 {
                    
@@ -315,13 +331,13 @@ public class Animal : MonoBehaviour
        
         if(moveState == State.MovingIdle)
         {
-            transform.up = target - transform.position;
-            body.velocity = transform.up * (DNA.Speed * 2 + optis(optimizers, Genes.Optimizers.Ergonomics));
+            Orient.transform.up = target - transform.position;
+            body.velocity = Orient.transform.up * (DNA.Speed * 2 + optis(optimizers, Genes.Optimizers.Ergonomics));
             if (seenEnems)
             {
                 if (diet.Contains(FoodTypes.Prey) && seenEnems.collider.GetComponent<Food>().foodType == FoodTypes.Prey)
                 {
-                    body.velocity = transform.up * (DNA.Speed + optis(optimizers, Genes.Optimizers.Ergonomics));
+                    body.velocity = Orient.transform.up * (DNA.Speed + optis(optimizers, Genes.Optimizers.Ergonomics));
                 }
             }
             
@@ -349,7 +365,7 @@ public class Animal : MonoBehaviour
             {
                 if (seenEnems.collider.GetComponent<Animal>().diet.Contains(GetComponent<Food>().foodType))
                 {
-                    target = transform.position - transform.up * DNA.Speed;
+                    target = transform.position - Orient.transform.up * DNA.Speed;
                     moveState = State.Fleeing;
                 }
             }
@@ -357,8 +373,8 @@ public class Animal : MonoBehaviour
        
         if (moveState == State.Fleeing)
         {
-            transform.up = target - transform.position;
-            body.velocity = transform.up * (DNA.Speed * 2 + optis(optimizers, Genes.Optimizers.Ergonomics));
+            Orient.transform.up = target - transform.position;
+            body.velocity = Orient.transform.up * (DNA.Speed * 2 + optis(optimizers, Genes.Optimizers.Ergonomics));
             if (Vector2.Distance(transform.position, target) < 0.1f)
             {
                 i = 0;
@@ -375,7 +391,7 @@ public class Animal : MonoBehaviour
         //transform.Rotate(new Vector3(0, 0, 1f));
         if(moveState != State.Fleeing && moveState != State.Sleeping)
         {
-            seenEnems = Physics2D.Raycast(transform.position + transform.up * transform.localScale.y, transform.up, DNA.Sight - World.world.NightMod);
+            seenEnems = Physics2D.Raycast(transform.position + Orient.transform.up * transform.localScale.y, Orient.transform.up, DNA.Sight - World.world.NightMod);
         }
         
         
@@ -410,7 +426,7 @@ public class Animal : MonoBehaviour
     }
     private void OnDrawGizmos()
     {
-        Gizmos.DrawRay(transform.position, transform.up*(DNA.Sight-World.world.NightMod));
+        Gizmos.DrawRay(transform.position, Orient.transform.up*(DNA.Sight-World.world.NightMod));
     }
     Transform GetClosestEnemy(Transform[] enemies)
     {
