@@ -22,10 +22,12 @@ public class Animal : MonoBehaviour
     public enum State 
     {
         Fleeing,
-        SearchingFood,
+      
         MovingIdle,
         lookingAround,
-        Idle
+        Sleeping,
+        Hunting
+        
     }
     public GameObject HuntedCorpse;
     public GameObject Corpse;
@@ -48,6 +50,12 @@ public class Animal : MonoBehaviour
     public string Name;
     public string Parent;
     bool ShowData;
+    bool IsSleeping;
+    public GameObject Claws;
+    public GameObject Legs;
+    public GameObject Eyes;
+    public List<Genes.Optimizers> optimizers;
+    public delegate float optiDelegate(List<Genes.Optimizers> optimizers, Genes.Optimizers targetOpti);
     public void OnMouseEnter()
     {
         ShowData = true;
@@ -68,7 +76,7 @@ public class Animal : MonoBehaviour
         body = gameObject.GetComponent<Rigidbody2D>();
         if (isProginator)
         {
-            DNA = new Genes(20, 4, 2, 0, new Color(255,255,255));
+            DNA = new Genes(20, 4, 2, 0, new Color(255,255,255),0,65);
             Name = AnimalNames.GenName();
         }
         if (isPlant)
@@ -97,9 +105,12 @@ public class Animal : MonoBehaviour
              b = 255;
         }
         gameObject.GetComponent<SpriteRenderer>().color = new Color(r, g, b);
-        transform.localScale = new Vector3(DNA.Resilliance, DNA.Damage +DNA.Resilliance);
+        transform.localScale = new Vector3(DNA.Resilliance, DNA.Resilliance);
         gameObject.GetComponent<Food>().Nutrition = DNA.Resilliance * 50;
-        if(diet.Contains(FoodTypes.Prey) && DNA.Damage == 0)
+        Eyes.transform.localScale = new Vector3(DNA.Sight / 30, DNA.Sight / 30);
+        Legs.transform.localScale = new Vector3(DNA.Speed/2, DNA.Speed/2);
+        Claws.transform.localScale = new Vector3(DNA.Damage*1.5f, DNA.Damage*1.5f);
+        if (diet.Contains(FoodTypes.Prey) && DNA.Damage == 0)
         {
             DNA.Damage = Random.Range(0, maxInclusive:1);
         }
@@ -116,19 +127,68 @@ public class Animal : MonoBehaviour
        
         return retStr;
     }
-    
+    string GetOptimizersAsString(List<Genes.Optimizers> o)
+    {
+        string retStr = "";
+        foreach (Genes.Optimizers opt in o)
+        {
+
+            retStr += opt.ToString() + ", ";
+        }
+
+        return retStr;
+    }
+
+    private void ResetUsage()
+    {
+        EnergyUsage = (DNA.Sight * StatModifiers.SightMod) + (DNA.Speed * StatModifiers.SpeedMod) + (DNA.Resilliance * StatModifiers.Resilliance) + (DNA.Damage * StatModifiers.Damage) + (diet.Count * 0.4f);
+
+    }
     public void Update()
     {
+        optiDelegate optis = (x, y) => {
+            foreach (Genes.Optimizers opt in x)
+            {
+                if (opt == y)
+                {
+                    return GeneOptimizaiton(y);
+                }
+            }
+            return 0;
+        };
+
+        if (World.world.elap < DNA.WakeTime || World.world.elap > DNA.SleepTime)
+        {
+            IsSleeping = true;
+            moveState = State.Sleeping;
+            body.velocity = new Vector2(0, 0);
+            
+        }
+        else if (IsSleeping)
+        {
+            ResetUsage();
+            moveState = State.lookingAround;
+            IsSleeping = false;
+        }
+
+        if (moveState == State.Sleeping)
+        {
+            EnergyUsage = 0;
+        }
         
         if (ShowData)
         {
             
             
-            AnimalData.text = $"{Name}\nAge: {Mathf.Round(age)}\nParent: {Parent}\nHunger: {Hunger.ToString("F2")}\nEnergy Usage: {EnergyUsage.ToString("F2")}\nGenes:\nSight: {DNA.Sight.ToString("F2")}\nSpeed: {DNA.Speed.ToString("F2")}\nDamage: {DNA.Damage.ToString("F2")}\nResilliance: {DNA.Resilliance.ToString("F2")}\nDiet: {GetDietAsString(diet)}";
+            AnimalData.text = $"{Name}\nAge: {Mathf.Round(age)}\nParent: {Parent}\nHunger: {Hunger.ToString("F2")}\nEnergy Usage: {EnergyUsage.ToString("F2")}\nGenes:\nSight: {DNA.Sight.ToString("F2")}\nSpeed: {(DNA.Speed  +optis(optimizers,Genes.Optimizers.Ergonomics)).ToString("F2")}\nDamage: {(DNA.Damage + optis(optimizers, Genes.Optimizers.Claws)).ToString("F2")}\nResilliance: {(DNA.Resilliance + optis(optimizers, Genes.Optimizers.Shell)).ToString("F2")}\nDiet: {GetDietAsString(diet)}\nBonuses: {GetOptimizersAsString(optimizers)}";
         }
        
-        reprodLap += Time.deltaTime;
-        if(reprodLap > reprodAge && Hunger < 100)
+        if(moveState != State.Sleeping)
+        {
+            reprodLap += Time.deltaTime;
+        }
+       
+        if(reprodLap > reprodAge && Hunger < 100 && moveState != State.Sleeping)
         {
             Hunger += 45;
             reprodAge = Random.Range(25, 50);
@@ -140,10 +200,12 @@ public class Animal : MonoBehaviour
             ChildGenes.DNA.Speed += Random.Range(-2, maxInclusive: 3);
             ChildGenes.DNA.Damage += Random.Range(-2, maxInclusive: 2);
             ChildGenes.DNA.Resilliance += Random.Range(-1, maxInclusive: 1);
+            ChildGenes.DNA.WakeTime += Random.Range(-3, maxInclusive: 3);
+            ChildGenes.DNA.SleepTime += Random.Range(-3, maxInclusive: 3);
             //ChildGenes.DNA.color = DNA.color + new Color(Random.Range(-20, maxInclusive: 20), Random.Range(-20, maxInclusive: 20), Random.Range(-20, maxInclusive: 20));
             ChildGenes.Name = AnimalNames.GenName();
             ChildGenes.Parent = Name;
-            if(Random.Range(0,101) > 65)
+            if(Random.Range(0,101) > 80)
             {
                 var AddOrRem = Mathf.Round(Random.Range(0, 2));
                 if(AddOrRem == 0 && ChildGenes.diet.Count > 1)
@@ -185,7 +247,34 @@ public class Animal : MonoBehaviour
 
 
         }
+        if(moveState == State.Hunting)
+        {
+            transform.up = target - transform.position;
+            body.velocity = transform.up * (DNA.Speed * 2 + optis(optimizers, Genes.Optimizers.Ergonomics));
+            if (seenEnems)
+            {
+                if (diet.Contains(FoodTypes.Prey) && seenEnems.collider.GetComponent<Food>().foodType == FoodTypes.Prey)
+                {
+                    body.velocity = transform.up * (DNA.Speed * 2 + optis(optimizers, Genes.Optimizers.Ergonomics));
+                }
+            }
 
+            if (Vector2.Distance(transform.position, target) < 0.1f)
+            {
+                i = 0;
+                body.velocity = new Vector3(0, 0);
+                if (diet.Contains(FoodTypes.Prey))
+                {
+                    moveState = State.lookingAround;
+                }
+                else
+                {
+                    moveState = State.MovingIdle;
+                }
+              
+
+            }
+        }
         if (moveState == State.lookingAround)
         {
 
@@ -196,23 +285,14 @@ public class Animal : MonoBehaviour
                    
                     if (diet.Contains(seenEnems.collider.gameObject.GetComponent<Food>().foodType))
                     {
-                        if(Random.Range(Hunger,150) > 100)
-                        {
+                       
                             target = seenEnems.transform.position;
-                            moveState = State.MovingIdle;
-                        }
+                            moveState = State.Hunting;
+                        
                       
                        
-                       
                     }
-                    if (seenEnems.collider.GetComponent<Animal>())
-                    {
-                        if (seenEnems.collider.GetComponent<Animal>().diet.Contains(GetComponent<Food>().foodType))
-                        {
-                            target =  transform.position -transform.up * DNA.Sight;
-                            moveState = State.Fleeing;
-                        }
-                    }
+                   
                    
                 }
 
@@ -236,12 +316,12 @@ public class Animal : MonoBehaviour
         if(moveState == State.MovingIdle)
         {
             transform.up = target - transform.position;
-            body.velocity = transform.up * DNA.Speed;
+            body.velocity = transform.up * (DNA.Speed * 2 + optis(optimizers, Genes.Optimizers.Ergonomics));
             if (seenEnems)
             {
                 if (diet.Contains(FoodTypes.Prey) && seenEnems.collider.GetComponent<Food>().foodType == FoodTypes.Prey)
                 {
-                    body.velocity = transform.up * DNA.Speed*2;
+                    body.velocity = transform.up * (DNA.Speed + optis(optimizers, Genes.Optimizers.Ergonomics));
                 }
             }
             
@@ -249,48 +329,62 @@ public class Animal : MonoBehaviour
             {
                 i = 0;
                 body.velocity = new Vector3(0, 0);
-                moveState = State.lookingAround;
+                if(Random.Range(Hunger, 150*DNA.Resilliance) > 150*DNA.Resilliance / 1.5f)
+                {
+                    moveState = State.lookingAround;
+                }
+                else
+                {
+                    target = transform.position + QuickMath.RandomVector(-10, 10);
+                }
+               
                 
             }
             
             
         }
-        if (moveState == State.Fleeing)
-        {
-            transform.up = target - transform.position;
-            body.velocity = transform.up * (DNA.Speed*2);
-            if (Vector2.Distance(transform.position, target) < 0.1f)
-            {
-                i = 0;
-                body.velocity = new Vector3(0, 0);
-                moveState = State.lookingAround;
-
-            }
-            Hunger += EnergyUsage * Time.deltaTime;
-
-
-        }
-        age += Time.deltaTime;
-        Hunger += EnergyUsage * Time.deltaTime;
-        //transform.Rotate(new Vector3(0, 0, 1f));
-        seenEnems = Physics2D.Raycast(transform.position + transform.up *transform.localScale.y,transform.up,DNA.Sight);
         if (seenEnems)
         {
             if (seenEnems.collider.GetComponent<Animal>())
             {
                 if (seenEnems.collider.GetComponent<Animal>().diet.Contains(GetComponent<Food>().foodType))
                 {
-                    target = transform.position - transform.up * DNA.Sight;
+                    target = transform.position - transform.up * DNA.Speed;
                     moveState = State.Fleeing;
                 }
             }
         }
+       
+        if (moveState == State.Fleeing)
+        {
+            transform.up = target - transform.position;
+            body.velocity = transform.up * (DNA.Speed * 2 + optis(optimizers, Genes.Optimizers.Ergonomics));
+            if (Vector2.Distance(transform.position, target) < 0.1f)
+            {
+                i = 0;
+                body.velocity = new Vector3(0, 0);
+                moveState = State.MovingIdle;
+
+            }
+            
+            
+
+        }
+        age += Time.deltaTime;
+        Hunger += EnergyUsage * Time.deltaTime;
+        //transform.Rotate(new Vector3(0, 0, 1f));
+        if(moveState != State.Fleeing && moveState != State.Sleeping)
+        {
+            seenEnems = Physics2D.Raycast(transform.position + transform.up * transform.localScale.y, transform.up, DNA.Sight - World.world.NightMod);
+        }
+        
+        
       
-        if (Hunger > 150)
+        if (Hunger > 150 * DNA.Resilliance)
         {
             Die();
         }
-        if(age > 300)
+        if(age > 600)
         {
             Die();
         }
@@ -316,7 +410,7 @@ public class Animal : MonoBehaviour
     }
     private void OnDrawGizmos()
     {
-        Gizmos.DrawRay(transform.position, transform.up*DNA.Sight);
+        Gizmos.DrawRay(transform.position, transform.up*(DNA.Sight-World.world.NightMod));
     }
     Transform GetClosestEnemy(Transform[] enemies)
     {
@@ -336,20 +430,35 @@ public class Animal : MonoBehaviour
     }
     private void OnTriggerEnter2D(Collider2D col)
     {
-         if (diet.Contains(col.gameObject.GetComponent<Food>().foodType) && Hunger > 10 && moveState != State.Fleeing)
+        //Very Efficient Yup Yup
+        optiDelegate optis = (x, y) => {
+            foreach (Genes.Optimizers opt in x)
+            {
+                if (opt == y)
+                {
+                    return GeneOptimizaiton(y);
+                }
+            }
+            return 0;
+        };
+        if (diet.Contains(col.gameObject.GetComponent<Food>().foodType) && moveState == State.Hunting)
          {
             if (col.GetComponent<Animal>())
             {
                 var PreyGenes = col.GetComponent<Animal>();
-                if(Random.Range(PreyGenes.DNA.Resilliance/2, PreyGenes.DNA.Resilliance) + DNA.Damage*2 > PreyGenes.DNA.Resilliance)
+                if(PreyGenes.Parent != Name)
                 {
-                    col.GetComponent<Animal>().DieHunted();
-                    Hunger -= col.gameObject.GetComponent<Food>().Nutrition;
-                    if (Hunger < 0)
+                    if (Random.Range(PreyGenes.DNA.Resilliance + optis(PreyGenes.optimizers, Genes.Optimizers.Shell) / 2, PreyGenes.DNA.Resilliance + optis(PreyGenes.optimizers, Genes.Optimizers.Shell)) + DNA.Damage * 2 + optis(optimizers, Genes.Optimizers.Claws) > PreyGenes.DNA.Resilliance + optis(PreyGenes.optimizers, Genes.Optimizers.Shell))
                     {
-                        Hunger = 0;
+                        col.GetComponent<Animal>().DieHunted();
+                        Hunger -= col.gameObject.GetComponent<Food>().Nutrition;
+                        if (Hunger < 0)
+                        {
+                            Hunger = 0;
+                        }
                     }
                 }
+               
             }
             else
             {
@@ -364,8 +473,27 @@ public class Animal : MonoBehaviour
             
         }
     }
+    public float GeneOptimizaiton(Genes.Optimizers trait)
+    {
+        if (trait == Genes.Optimizers.Shell)
+        {
+            return DNA.Resilliance * 2;
+        }
+        if (trait == Genes.Optimizers.Claws)
+        {
+            return DNA.Damage * 2;
+        }
+        if (trait == Genes.Optimizers.Ergonomics)
+        {
+            return DNA.Speed * 2;
+        }
+
+        return 0;
+
+    }
 
 }
+
 [System.Serializable]
 public struct Genes
 {
@@ -374,14 +502,25 @@ public struct Genes
     public Color color;
     public float Resilliance;
     public float Damage;
-    
-    public Genes(float s, float sp, float r, float d, Color c)
+    public float WakeTime;
+    public float SleepTime;
+    public enum Optimizers
+    {
+        Shell,
+        Claws,
+        Ergonomics,
+        None
+    }
+   
+    public Genes(float s, float sp, float r, float d, Color c, float wt, float st)
     {
         this.Sight = s;
         this.Speed = sp;
         this.color = c;
         this.Damage = d;
         this.Resilliance = r;
+        this.WakeTime = wt;
+        this.SleepTime = st;
         
     }
 
@@ -389,8 +528,8 @@ public struct Genes
 public static class StatModifiers
 {
     public static readonly float SightMod = 0.15f/2;
-    public static readonly float SpeedMod = 0.7f/2;
-    public static readonly float Resilliance = 1.2f / 2;
+    public static readonly float SpeedMod = 1f/2;
+    public static readonly float Resilliance = 0.6f / 2;
     public static readonly float Damage = 1f / 2;
     
 }

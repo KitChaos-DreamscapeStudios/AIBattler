@@ -15,16 +15,21 @@ public class Food : MonoBehaviour
     float reProdSpan;//Plants Only
     float Deathspan;//Plants and Carrion only
     bool HasReproduced;//Plants
+    public static float NumPlants;
     // Start is called before the first frame update
     void Start()
     {
         Lifespan = 0;
-        reProdSpan = Random.Range(20, 85);
-        Deathspan = reProdSpan - 10 +Random.Range(5, 25);
+        reProdSpan = Random.Range(30, 95);
+        Deathspan = reProdSpan - 10 +Random.Range(25, 45);
         if(foodType == FoodTypes.Carrion)
         {
             Deathspan += 150;
-            Nutrition += transform.localScale.x * 20;
+            Nutrition += transform.localScale.x * 30;
+        }
+        if(foodType == FoodTypes.Plant)
+        {
+            Food.NumPlants += 1;
         }
     }
 
@@ -34,22 +39,27 @@ public class Food : MonoBehaviour
         Lifespan += Time.deltaTime;
         if(foodType == FoodTypes.Plant && Lifespan > reProdSpan && !HasReproduced)
         {
-            HasReproduced = true;
-            for(int i =0; i<Random.Range(1, 4); i++)
+            var NumPlantsMake = Random.Range(1, 3);
+            if(NumPlantsMake + NumPlants < 650)//650 is plant cap;
             {
-                Instantiate(gameObject, transform.position + QuickMath.RandomVector(-25, 25), Quaternion.identity);
+                HasReproduced = true;
+                for (int i = 0; i < NumPlantsMake; i++)
+                {
+                    Instantiate(gameObject, transform.position + QuickMath.RandomVector(-30, 30), Quaternion.identity);
+                }
             }
+           
         }
         if((foodType == FoodTypes.Plant || foodType == FoodTypes.Carrion) && Lifespan > Deathspan)
         {
             Destroy(gameObject);
         }
     }
-    private void OnTriggerEnter2D(Collision2D collision)
+    private void OnDestroy()
     {
-        if(foodType == FoodTypes.Plant)
+        if (foodType == FoodTypes.Plant)
         {
-            Deathspan -= 10;
+            Food.NumPlants -= 1;
         }
     }
 }
