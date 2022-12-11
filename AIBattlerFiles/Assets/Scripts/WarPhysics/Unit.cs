@@ -18,6 +18,8 @@ public class Unit : MonoBehaviour
     public LayerMask ground;
     public Camera Ranger;
     Vector3 RangePos;
+    public float jumpPower;
+    public GameObject MuzzleFire;
     // Start is called before the first frame update
     void Start()
     {
@@ -28,8 +30,9 @@ public class Unit : MonoBehaviour
     void Update()
     {
         elap += Time.deltaTime;
-        //if (GodPlayer.player.SelectedUnit == this)
-        //{
+        Debug.Log(GodPlayer.player.SelectedUnit.name);
+        if (GodPlayer.player.SelectedUnit == this)
+        {
             MousePos = new Vector3(Camera.main.ScreenToWorldPoint(Input.mousePosition).x, Camera.main.ScreenToWorldPoint(Input.mousePosition).y, 0);
             RangePos = new Vector3(Ranger.ScreenToWorldPoint(Input.mousePosition).x, Ranger.ScreenToWorldPoint(Input.mousePosition).y, 0);
             if (Input.GetMouseButton(1))
@@ -50,17 +53,20 @@ public class Unit : MonoBehaviour
             OnGround = Physics2D.OverlapBox(transform.position, new Vector2(1, 0.5f), 0, ground);
             if ((Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)) && OnGround)
             {
-                body.AddForce(new Vector3(0, 500));
+                body.AddForce(new Vector3(0, jumpPower*100));
             }
             if (Input.GetMouseButtonUp(0) && elap > firerateLimiter)
             {
                 elap = 0;
                 var bullet = Instantiate(shootObj, transform.position, Quaternion.identity);
                 bullet.GetComponent<Rigidbody2D>().velocity = (RangePos - bullet.transform.position).normalized * ShootVeloc;
-                Destroy(bullet, 5);
+                bullet.GetComponent<Projectile>().parent = gameObject;
+                //bullet.transform.LookAt(RangePos, transform.up);
+                
+                Destroy(bullet, 15);
             }
 
-        //}
+        }
 
     }
     private void OnDrawGizmos()
